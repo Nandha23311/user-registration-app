@@ -7,11 +7,16 @@ const thisCtrl = this;
 
 exports.saveNewUser = (req,res) =>{
     let reqBody=req.body;
-    if(reqBody.userName && reqBody.password){ //userName & password is Mandatory
-        if(reqBody.userName.length >= constants.USERNAME_LENGTH){
-            return thisCtrl.findUser({userName:reqBody.userName.toString().toLowerCase()}, res, callBack) //findUserByUsername           
-        }
-        return responseCtrl.badRequest(res,"Username must contains atleast "+constants.MOBILE_NUMBER_LENGTH+" letters")
+    if(reqBody.userName && reqBody.password){ //userName & password is Mandatory        
+        if(validationCtrl.userNameValidation(reqBody.userName)){ //to validate username  
+            if(validationCtrl.passwordValidation(reqBody.password)){ //to validate Password                            
+                return thisCtrl.findUser({userName:reqBody.userName.toString().trim().toLowerCase()}, res, callBack) //findUserByUsername           
+            }else{
+                return responseCtrl.badRequest(res,constants.PASSWORD_INVALID_STRING)
+            }                                       
+        }else{
+            return responseCtrl.badRequest(res,constants.USERNAME_INVALID_STRING)
+        }        
     }else{
         return thisCtrl.mandatoryCheckFailed(reqBody, res)
     }
@@ -20,30 +25,36 @@ exports.saveNewUser = (req,res) =>{
         if(userData === null)  {            
             return createNewUser()                         
         }    
-        return responseCtrl.badRequest(res,"Username already exists")
+        return responseCtrl.badRequest(res,constants.USERNAME_ALREADY_EXISTS)
     }            
     
     function createNewUser(){
         let userObj = {};
-        if(reqBody.mobileNumber){ //if mobile number exists validate the otherwise save record without mobilenumber
-            if(validationCtrl.isInteger(reqBody.mobileNumber) && reqBody.mobileNumber.toString().length == constants.MOBILE_NUMBER_LENGTH){                        
-                userObj.mobileNumber = reqBody.mobileNumber
-            }else{
-                return responseCtrl.badRequest(res,"Invalid Mobilenumber")
-            }
-        }                        
-        userObj.userName = reqBody.userName.toString().toLowerCase()        
-        userObj.password = crypto.encrypt(reqBody.password) //to encrypt password
-        
-        if ( reqBody.firstName ) userObj.firstName = reqBody.firstName
-        if ( reqBody.lastName ) userObj.lastName = reqBody.lastName
-        
+        if(reqBody.mobileNumber && validationCtrl.mobileNumberValidation(reqBody.mobileNumber)){ //to validate mobilenumber            
+            userObj.mobileNumber = reqBody.mobileNumber            
+        }else{
+            return responseCtrl.badRequest(res,constants.INVALID_MOBILE_NUMBER)
+        }       
+
+        if(validationCtrl.passwordValidation(reqBody.password)){ //to validate Password            
+            userObj.password = crypto.encrypt(reqBody.password.toString().trim()) //to encrypt password
+            userObj.passwordStrength = validationCtrl.passwordStrength(reqBody.password.toString().trim()) //to generate password strength
+        }else{
+            return responseCtrl.badRequest(res,constants.PASSWORD_INVALID_STRING)
+        }                           
+        userObj.password = crypto.encrypt(reqBody.password.toString().trim()) //to encrypt password
+        userObj.passwordStrength = validationCtrl.passwordStrength(reqBody.password) //to generate password strength
+        userObj.userName = reqBody.userName.toString().trim().toLowerCase()                
         userObj.token = crypto.generateToken() //to generate token
+        
+        if ( reqBody.firstName && reqBody.firstName.toString().length !=0 ) userObj.firstName = reqBody.firstName.toString().trim()
+        if ( reqBody.lastName && reqBody.lastName.toString().length !=0) userObj.lastName = reqBody.lastName.toString().trim()
+                
         let saveUser = new User(userObj) ;      
         return saveUser.save((saveErr, savedUser)=>{ 
             if(saveErr){                                        
                 if(saveErr.code == constants.MONGO_DUPLICATE_CODE) {
-                    return responseCtrl.InternalError(res,"Mobile number already registered")
+                    return responseCtrl.InternalError(res,constants.MOBILENUMBER_ALREADY_EXISTS)
                 }
                 return responseCtrl.InternalError(res,constants.ERROR_WHILE_SAVING)
             }                            
@@ -54,26 +65,36 @@ exports.saveNewUser = (req,res) =>{
 
 exports.userLogin = (req,res)=>{
     let reqBody=req.body;    
-    if( reqBody.userName && reqBody.password ){ //userName & password is Mandatory
-        return thisCtrl.findUser({userName:reqBody.userName.toString().toLowerCase()}, res, callBack)              
+
+    if(reqBody.userName && reqBody.password){ 
+        if(validationCtrl.userNameValidation(reqBody.userName)){ 
+            if(validationCtrl.passwordValidation(reqBody.password)){ 
+                return thisCtrl.findUser({userName:reqBody.userName.toString().trim().toLowerCase()}, res, callBack) 
+            }else{
+                return responseCtrl.badRequest(res,constants.PASSWORD_INVALID_STRING)
+            }                                       
+        }else{
+            return responseCtrl.badRequest(res,constants.USERNAME_INVALID_STRING)
+        }        
     }else{
         return thisCtrl.mandatoryCheckFailed(reqBody, res)
-    }
+    }    
+
     function callBack(userData){
         if(userData != null){
-            if(userData.password === crypto.encrypt(reqBody.password)){                    
+            if(userData.password === crypto.encrypt(reqBody.password.toString().trim())){                    
                 return responseCtrl.success(res,{ userId: userData._id,token: userData.token})                
             }
-            return responseCtrl.badRequest(res,"password did't match")                                
+            return responseCtrl.badRequest(res,constants.PASSWORD_NOT_MATCH)
         }
         return responseCtrl.notFound(res,constants.USER_NOTFOUND)     
     }        
 }
 
 exports.getUserProfile = (req,res)=>{
-    let reqBody =req.body;
+    let reqBody = req.body;
     if(reqBody.userId){
-        return thisCtrl.getUserById(reqBody.userId,{userName:1,firstName:1,lastName:1,age:1,mobileNumber:1,verifiedStatus:1}).then((user)=>{
+        return thisCtrl.getUserById(reqBody.userId,{userName:1,firstName:1,lastName:1,age:1,mobileNumber:1,verified:1,passwordStrength:1}).then((user)=>{
             if(user === null){
                 return responseCtrl.badRequest(res,constants.ERROR_WHILE_FINDING)
             }
@@ -84,7 +105,7 @@ exports.getUserProfile = (req,res)=>{
             }
         })
     }
-    return responseCtrl.badRequest(res,"Invalid userId")
+    return responseCtrl.badRequest(res,constants.INVALID_USER_ID)
 }
 
 exports.updateUser = (req,res)=>{
@@ -94,13 +115,37 @@ exports.updateUser = (req,res)=>{
             if(findErr){                
                 return responseCtrl.badRequest(res,constants.ERROR_WHILE_FINDING)
             }
-            if(userData != null){  
-                let updateObj = reqBody.updateObj;
-                for(let eachKey in updateObj){
-                    if(updateObj[eachKey]){
-                        userData[eachKey] = updateObj[eachKey]
-                    } 
-                }
+            if(userData != null){                  
+                if(reqBody.isResetPassword){ //Check isResetPassword flag for resetpassword
+                    if(reqBody.oldPassword){                          
+                        if(validationCtrl.passwordValidation(reqBody.oldPassword)){                                 
+                            if(crypto.encrypt(reqBody.oldPassword.toString().trim()) === userData.password){                                                        
+                                if(validationCtrl.passwordValidation(reqBody.newPassword)){                                    
+                                    userData.password = crypto.encrypt(reqBody.newPassword.toString().trim());
+                                }else{                                    
+                                    return responseCtrl.badRequest(res,constants.NEW_PASSWORD_INVALID_STRING)
+                                }                       
+                            }else{                                
+                                return responseCtrl.badRequest(res,constants.PASSWORD_NOT_MATCH)
+                            }
+                        }else{
+                            return responseCtrl.badRequest(res,constants.OLD_PASSWORD_INVALID_STRING)
+                        }                        
+                    }else{
+                        return responseCtrl.badRequest(res,constants.OLD_PASSWORD_ISEMPTY)  
+                    }                    
+                }else{ //normal user update
+                    if ( reqBody.firstName && reqBody.firstName.toString().length !=0 ) userData.firstName = reqBody.firstName.toString().trim()
+                    if ( reqBody.lastName && reqBody.lastName.toString().length !=0) userData.lastName = reqBody.lastName.toString().trim()
+                    if ( reqBody.age && reqBody.age > 100 ) userData.age = reqBody.age
+                    if (reqBody.mobileNumber){
+                        if(validationCtrl.mobileNumberValidation(reqBody.mobileNumber) ){                         
+                           userData.mobileNumber = reqBody.mobileNumber
+                        }else{
+                            return responseCtrl.badRequest(res,constants.INVALID_MOBILE_NUMBER)
+                        }
+                    }                    
+                }                                
                 userData.updatedAt=new Date();
                 return userData.save((updateErr,updatedUser)=>{
                     if(updateErr){
@@ -108,12 +153,11 @@ exports.updateUser = (req,res)=>{
                     }                    
                     return responseCtrl.success(res,constants.UPDATE_SUCCESS)
                 })
-
             }            
             return responseCtrl.notFound(res,constants.USER_NOTFOUND)
         })        
     }
-    return responseCtrl.badRequest(res,"Invalid userId")
+    return responseCtrl.badRequest(res,constants.INVALID_USER_ID)
 }
 
 exports.getUserById = (userId,project_key)=>{

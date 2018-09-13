@@ -1,4 +1,5 @@
 module.exports = {
+
     //Utils Constants
     VALIDATION_LOG: true,
     RESULT_LOG: true,    
@@ -6,7 +7,10 @@ module.exports = {
     CRYPTO_KEY: 'lockandkey',
 
     //Validation_Constants
-    USERNAME_LENGTH: 6,
+    USERNAME_LENGTH_MIN: 6,
+    USERNAME_LENGTH_MAX: 20,
+    PASSWORD_LENGTH_MIN: 6,
+    PASSWORD_LENGTH_MAX: 20,
     MOBILE_NUMBER_LENGTH: 10,
     
     //Http-Status
@@ -23,6 +27,17 @@ module.exports = {
     ERROR_WHILE_FINDING:'Error while finding data',
     ERROR_WHILE_SAVING:'Error while saving data',
     ERROR_WHILE_UPDATING:'Error while updating data',    
+    PASSWORD_INVALID_STRING:"Password length should be between "+6+" and "+20,
+    OLD_PASSWORD_INVALID_STRING:"Current Password length should be between "+6+" and "+20,
+    NEW_PASSWORD_INVALID_STRING:"New Password length should be between "+6+" and "+20,
+    USERNAME_INVALID_STRING:"Username length should be between "+6+" and "+20,
+    INVALID_MOBILE_NUMBER:"Invalid Mobile Number",
+    INVALID_USER_ID:"Invalid User Id",
+    USERNAME_ALREADY_EXISTS:"Username already exists",
+    MOBILENUMBER_ALREADY_EXISTS:"Mobilenumber already exists",
+    PASSWORD_NOT_MATCH:"Password not match",
+    OLD_PASSWORD:"Current password doesn't match",
+    OLD_PASSWORD_ISEMPTY:"Invalid current password ",
     
     //Mongo Constants
     MONGO_DUPLICATE_CODE:11000

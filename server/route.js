@@ -3,11 +3,10 @@ const UserCtrl=require('./controller/UserController')
 const responseCtrl=require('./utils/responseCtrl')
 
 module.exports = function(router){	
-	function authFunction(req,res,next){ //Authentication Function		
-		
+	function authFunction(req,res,next){ //Authentication Function				
 		if(req.headers.mobile){ //For Mobile Authentication
 			return findToken() 
-		}else{ //For Web Authentication										
+		}else{ //For Web Authentication, like a session handling							
 			return findToken() 
 		}
 		

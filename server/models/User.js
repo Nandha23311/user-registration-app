@@ -3,13 +3,14 @@ var Schema = mongoose.Schema;
 
 var userSchema = new Schema({    
     userName: {type: String,required:true,unique:true},
-    password: {type: String,required:true},
+    password: {type: String,required:true},    
     firstName:{type: String},
     lastName:{type: String},    
     age:{type:Number},
     mobileNumber: {type: Number, unique:true},    
+    passwordStrength:{type: String},
     token:{type: String},
-    verifiedStatus:{type:Boolean,default:false},    
+    verified:{type:Boolean,default:false},    
     createdAt: {type: Date, default: Date.now},
     updatedAt: {type: Date, default: Date.now}
 });
