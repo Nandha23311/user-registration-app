@@ -30,12 +30,13 @@ exports.saveNewUser = (req,res) =>{
     
     function createNewUser(){
         let userObj = {};
-        if(reqBody.mobileNumber && validationCtrl.mobileNumberValidation(reqBody.mobileNumber)){ //to validate mobilenumber            
-            userObj.mobileNumber = reqBody.mobileNumber            
-        }else{
-            return responseCtrl.badRequest(res,constants.INVALID_MOBILE_NUMBER)
-        }       
-
+        if(reqBody.mobileNumber){
+            if(validationCtrl.mobileNumberValidation(reqBody.mobileNumber)){ //to validate mobilenumber            
+                userObj.mobileNumber = reqBody.mobileNumber            
+            }else{
+                return responseCtrl.badRequest(res,constants.INVALID_MOBILE_NUMBER)
+            }       
+        }        
         if(validationCtrl.passwordValidation(reqBody.password)){ //to validate Password            
             userObj.password = crypto.encrypt(reqBody.password.toString().trim()) //to encrypt password
             userObj.passwordStrength = validationCtrl.passwordStrength(reqBody.password.toString().trim()) //to generate password strength
