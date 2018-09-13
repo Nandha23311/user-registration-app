@@ -35,9 +35,9 @@ module.exports = {
     INVALID_USER_ID:"Invalid User Id",
     USERNAME_ALREADY_EXISTS:"Username already exists",
     MOBILENUMBER_ALREADY_EXISTS:"Mobilenumber already exists",
-    PASSWORD_NOT_MATCH:"Password not match",
-    OLD_PASSWORD:"Current password doesn't match",
-    OLD_PASSWORD_ISEMPTY:"Invalid current password ",
+    PASSWORD_NOT_MATCH:"Your Password is incorrect",
+    OLD_PASSWORD:"Current password is incorrect",
+    OLD_PASSWORD_ISEMPTY:"Current password does not exists",
     
     //Mongo Constants
     MONGO_DUPLICATE_CODE:11000
